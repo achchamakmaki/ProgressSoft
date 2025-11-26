@@ -1,0 +1,23 @@
+[
+  {
+    "dealUniqueId": "DEAL-001",
+    "fromCurrency": "USD",
+    "toCurrency": "EUR",
+    "dealTimestamp": "2025-11-26T10:00:00Z",
+    "amount": 1500.75
+  },
+  {
+    "dealUniqueId": "DEAL-002",
+    "fromCurrency": "GBP",
+    "toCurrency": "JPY",
+    "dealTimestamp": "2025-11-26T11:30:00Z",
+    "amount": 2500.00
+  },
+  {
+    "dealUniqueId": "DEAL-003",
+    "fromCurrency": "BAD",
+    "toCurrency": "EUR",
+    "dealTimestamp": "2025-11-26T12:00:00Z",
+    "amount": 100
+  }
+]
