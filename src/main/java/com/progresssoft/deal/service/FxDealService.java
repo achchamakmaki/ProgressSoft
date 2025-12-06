@@ -27,32 +27,56 @@ public class FxDealService {
 
         for (FxDealRequest req : requests) {
             processed++;
+
             try {
-                // 1. Idempotence : on refuse les doublons
+                // 1. Vérification du doublon
                 if (repository.existsByDealUniqueId(req.dealUniqueId())) {
                     errors.add("Row " + processed + " → Duplicate dealUniqueId: " + req.dealUniqueId());
                     continue;
                 }
 
+                // 2. Validation des devises (ISO 4217 = 3 lettres exactement)
+                String fromCurrency = req.fromCurrency().trim().toUpperCase();
+                String toCurrency = req.toCurrency().trim().toUpperCase();
+
+                if (fromCurrency.length() != 3 || !fromCurrency.matches("[A-Z]{3}")) {
+                    errors.add("Row " + processed + " → Invalid fromCurrency '" + req.fromCurrency() + "' : must be exactly 3 uppercase letters");
+                    continue;
+                }
+                if (toCurrency.length() != 3 || !toCurrency.matches("[A-Z]{3}")) {
+                    errors.add("Row " + processed + " → Invalid toCurrency '" + req.toCurrency() + "' : must be exactly 3 uppercase letters");
+                    continue;
+                }
+
+                // 3. Tout est OK → on crée l'entité
                 FxDeal deal = FxDeal.builder()
                         .dealUniqueId(req.dealUniqueId())
-                        .fromCurrency(req.fromCurrency().toUpperCase())
-                        .toCurrency(req.toCurrency().toUpperCase())
+                        .fromCurrency(fromCurrency)
+                        .toCurrency(toCurrency)
                         .dealTimestamp(req.dealTimestamp())
                         .amount(req.amount())
                         .build();
 
                 toSave.add(deal);
+
             } catch (Exception e) {
+                // Attrape toute erreur inattendue pendant la construction
                 errors.add("Row " + processed + " → Validation error: " + e.getMessage());
             }
         }
 
+        // 4. Sauvegarde uniquement les lignes valides
         if (!toSave.isEmpty()) {
-            repository.saveAll(toSave);
-            log.info("Successfully imported {} deals", toSave.size());
+            try {
+                repository.saveAll(toSave);
+                log.info("Successfully imported {} deals", toSave.size());
+            } catch (Exception e) {
+                // En cas d'erreur DB (très rare maintenant qu’on a validé)
+                errors.add("Database error during import: " + e.getMessage());
+                log.error("Failed to save valid deals", e);
+            }
         }
 
-        return new ImportSummary(processed, toSave.size(), errors);
+        return new ImportSummary(requests.size(), toSave.size(), errors);
     }
 }
